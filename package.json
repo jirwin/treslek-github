@@ -1,0 +1,28 @@
+{
+  "name": "treslek-github",
+  "version": "0.0.0",
+  "description": "A treslek plugin to handle incoming webhooks from Github",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jirwin/treslek-github.git"
+  },
+  "keywords": [
+    "treslek",
+    "irc",
+    "github"
+  ],
+  "author": "Justin Gallardo <justin.gallardo@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/jirwin/treslek-github/issues"
+  },
+  "homepage": "https://github.com/jirwin/treslek-github",
+  "dependencies": {
+    "redis": "^0.12.1",
+    "sprintf": "^0.1.4"
+  }
+}
