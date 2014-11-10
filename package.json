@@ -1,6 +1,6 @@
 {
   "name": "treslek-github",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "A treslek plugin to handle incoming webhooks from Github",
   "main": "index.js",
   "scripts": {
