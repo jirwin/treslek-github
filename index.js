@@ -1,44 +1,84 @@
-var redis = require('redis');
 var sprintf = require('sprintf').sprintf;
-var redisClient;
+var GitHubApi = require('github4');
 
-var config = require('./config.json');
+var github = null;
+
+var GITHUB_USER = process.env.TRESLEK_GITHUB_USER;
+var GITHUB_TOKEN = process.env.TRESLEK_GITHUB_TOKEN;
 
 var Github = function() {
-  this.auto = ['listen'];
+  this.commands = ['issue'];
+  this.auto = ['load'];
 };
 
-Github.prototype.listen = function(bot) {
-  redisClient = redis.createClient(bot.redisConf.port, bot.redisConf.host);
+Github.prototype.issue = function(bot, to, from, msg, callback) {
+  function parseIssue(issue) {
+    var maxLength = 80,
+        maxTitle = issue.slice(0, maxLength),
+        trimmedTitleLength = Math.min(maxTitle.length, maxTitle.lastIndexOf(' ')),
+        title = maxTitle.slice(0, trimmedTitleLength),
+        body = issue.slice(trimmedTitleLength, issue.length);
 
-  var pattern = [bot.redisConf.prefix, 'github/*'].join(':');
+    return {
+      title: title,
+      body: body
+    };
+  }
 
-  redisClient.on("pmessage", function(pattern, channel, message) {
-    var channelPath = channel.slice(bot.redisConf.prefix.length + 1).split('/')[1],
-        realChannel = config.channels[channelPath],
-        data = JSON.parse(message),
-        output;
+  var msgParts = msg.split(' ');
+  var userRepo = msgParts[0].split('/');
 
-    if (data) {
-      if (data.action === "created") {
-        if (data.comment) {
-          output = sprintf("New comment on PR: %s by %s \"%s\"",
-			   data.pull_request.html_url, data.comment.user.login, data.comment.body);
-        }
-      } else if (data.action === "opened") {
-        output = sprintf("New PR \"%s\" by %s at %s comment: %s",
-	  data.pull_request.title,  data.pull_request.user.login,
-	  data.pull_request.html_url, data.pull_request.body);
-      } else if (data.action === "closed") {
-        output = sprintf("PR %s closed by %s", data.number, data.pull_request.merged_by.login);
-      }
+  if (userRepo.length !== 2) {
+    bot.say(to, 'You must provide a user and repo to create an issue on.');
+    callback();
+    return;
+  }
+
+  var titleBody = {};
+  var tbMsg = msg.slice(msgParts[0].length, msg.length);
+  if (tbMsg.length < 80) {
+    titleBody.title = tbMsg;
+    titleBody.body = '';
+  } else {
+    titleBody = parseIssue(tbMsg);
+  }
+  github.issues.create({
+    user: userRepo[0],
+    repo: userRepo[1],
+    title: titleBody.title,
+    body: titleBody.body
+  }, function (err, res) {
+    if (err) {
+      bot.say(to, 'Unable to create issue.');
+      callback();
+      return;
     }
 
-    if (output) {
-      bot.say(realChannel, output);
-    }
+    bot.say(to, 'Successfully created issue at ' + res.html_url);
+    callback();
+    return;
   });
-  redisClient.psubscribe(pattern);
+};
+
+Github.prototype.load = function(bot) {
+  if (!github) {
+    github = new GitHubApi({
+      version: "3.0.0",
+      debug: true,
+      protocol: "https",
+      host: "api.github.com",
+      pathPrefix: "",
+      timeout: 5000,
+      headers: {
+        "user-agent": "treslek-github"
+      }
+    });
+    github.authenticate({
+      type: "basic",
+      username: GITHUB_USER,
+      password: GITHUB_TOKEN
+    });
+  }
 };
 
 exports.Plugin = Github;

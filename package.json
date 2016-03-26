@@ -22,6 +22,7 @@
   },
   "homepage": "https://github.com/jirwin/treslek-github",
   "dependencies": {
+    "github4": "^0.5.4",
     "redis": "^0.12.1",
     "sprintf": "^0.1.4"
   }
